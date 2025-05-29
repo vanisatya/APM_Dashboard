@@ -6,27 +6,39 @@ import os
 
 app = FastAPI()
 
-# Serve static files like dashboard.html
+# Serve static files (like Dashboard.html)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Serve the HTML dashboard at the root URL
+# Serve HTML dashboard as home page
 @app.get("/")
 def serve_dashboard():
     return FileResponse("static/Dashboard.html")
 
-# Return latest metrics (last 3 lines assumed to be App1, App2, App3)
-@app.get("/metrics")
-def get_metrics():
-    log_file = "/home/VaniSatya/logs/server_metrics.log"  # Update path if different
-    if not os.path.exists(log_file):
-        return {"metrics": []}
-
+# Helper: Read last N lines as JSON from a log file
+def read_last_json_lines(filepath, count=1):
+    if not os.path.exists(filepath):
+        return []
     try:
-        with open(log_file, "r") as f:
+        with open(filepath, "r") as f:
             lines = f.readlines()
-            # Assuming last 3 lines are from App1, App2, App3 (update logic as needed)
-            last_lines = lines[-3:]
-            metrics = [json.loads(line) for line in last_lines]
-        return {"metrics": metrics}
-    except Exception as e:
-        return {"metrics": [], "error": str(e)}
+            return [json.loads(line) for line in lines[-count:]]
+    except:
+        return []
+
+# Expose combined APM metrics for App1, App2, App3
+@app.get("/metrics")
+def get_all_app_metrics():
+    return {
+        "App1": {
+            "server": read_last_json_lines("/home/VaniSatya/Web-Application/server_apm1.log", 1),
+            "web": read_last_json_lines("/home/VaniSatya/Web-Application/app1.log", 1)
+        },
+        "App2": {
+            "server": read_last_json_lines("/home/VaniSatya/Web-Application-1/server_apm2.log", 1),
+            "web": read_last_json_lines("/home/VaniSatya/Web-Application-1/app2.log", 1)
+        },
+        "App3": {
+            "server": read_last_json_lines("/home/VaniSatya/Web-Application-2/server_apm3.log", 1),
+            "web": read_last_json_lines("/home/VaniSatya/Web-Application-2/app3.log", 1)
+        }
+    }
