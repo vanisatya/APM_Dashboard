@@ -1,89 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>APM Dashboard</title>
+  <title>Live APM Dashboard</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f9f9f9;
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; }
+    h2 { color: #2c3e50; }
+    .app-card {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    h1 {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .app-title {
-      font-size: 1.3em;
-      margin-top: 30px;
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-bottom: 30px;
-      background: #fff;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: center;
-    }
-    th {
-      background-color: #f0f0f0;
-    }
-    .error-high { background-color: #ffe5e5; }
-    .cpu-high { background-color: #fff0cc; }
+    .metric { margin-left: 20px; }
   </style>
 </head>
 <body>
-  <h1>Live APM Dashboard</h1>
-  <div id="dashboard"></div>
+  <h1>📊 Live Application Performance Metrics</h1>
+  <div id="dashboard">Loading...</div>
 
   <script>
-    async function loadMetrics() {
+    async function fetchMetrics() {
       try {
         const response = await fetch("/metrics");
         const data = await response.json();
         const container = document.getElementById("dashboard");
-        container.innerHTML = "";
+        container.innerHTML = ""; // Clear previous data
 
-        data.metrics.forEach((m) => {
-          const errorClass = m.error_rate > 20 ? "error-high" : "";
-          const cpuClass = m.cpu_percent > 80 ? "cpu-high" : "";
+        for (const [appName, metrics] of Object.entries(data)) {
+          const card = document.createElement("div");
+          card.className = "app-card";
 
-          container.innerHTML += `
-            <div class="app-title">${m.app} (Updated: ${new Date(m.timestamp).toLocaleTimeString()})</div>
-            <table>
-              <tr><th colspan="3">Web APM</th></tr>
-              <tr><th>Request Count</th><th>Avg Response Time (ms)</th><th>Error Rate (%)</th></tr>
-              <tr class="${errorClass}">
-                <td>${m.request_count}</td>
-                <td>${m.avg_response_time.toFixed(2)}</td>
-                <td>${m.error_rate.toFixed(2)}</td>
-              </tr>
-            </table>
-            <table>
-              <tr><th colspan="3">Server APM</th></tr>
-              <tr><th>CPU (%)</th><th>Memory (%)</th><th>Disk (%)</th></tr>
-              <tr class="${cpuClass}">
-                <td>${m.cpu_percent.toFixed(1)}</td>
-                <td>${m.memory_percent.toFixed(1)}</td>
-                <td>${m.disk_percent.toFixed(1)}</td>
-              </tr>
-            </table>
+          let web = metrics.web_apm || {};
+          let server = metrics.server_apm || {};
+
+          card.innerHTML = `
+            <h2>📦 ${appName}</h2>
+            <h3>▶ Web APM:</h3>
+            <div class="metric">Request Count: ${web["Request Count"] ?? "N/A"}</div>
+            <div class="metric">Avg Response Time (ms): ${web["Avg Response Time (ms)"] ?? "N/A"}</div>
+            <div class="metric">Error Rate (%): ${web["Error Rate (%)"] ?? "N/A"}</div>
+
+            <h3>▶ Server APM:</h3>
+            <div class="metric">CPU (%): ${server["CPU (%)"] ?? "N/A"}</div>
+            <div class="metric">Memory (%): ${server["Memory (%)"] ?? "N/A"}</div>
+            <div class="metric">Disk (%): ${server["Disk (%)"] ?? "N/A"}</div>
+            <div class="metric">Last Updated: ${server["Last Updated"] ?? "N/A"}</div>
           `;
-        });
-      } catch (e) {
-        document.getElementById("dashboard").innerHTML = "<p>Unable to load metrics. Check if the API is running.</p>";
-        console.error("Fetch error:", e);
+
+          container.appendChild(card);
+        }
+      } catch (error) {
+        document.getElementById("dashboard").innerText = "⚠️ Failed to load metrics.";
+        console.error(error);
       }
     }
 
-    loadMetrics();
-    setInterval(loadMetrics, 10000); // refresh every 10 seconds
+    // Initial load + refresh every 10 seconds
+    fetchMetrics();
+    setInterval(fetchMetrics, 10000);
   </script>
 </body>
 </html>
