@@ -12,7 +12,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Serve the HTML dashboard at the root URL
 @app.get("/")
 def serve_dashboard():
-    return FileResponse("static/dashboard.html")
+    return FileResponse("static/Dashboard.html")
 
 # Return latest metrics (last 3 lines assumed to be App1, App2, App3)
 @app.get("/metrics")
